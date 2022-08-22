@@ -1,7 +1,7 @@
 <template>
   <ul class="-col-group" name="ColumnGroup">
     <label class="-col-group-title">
-      {{ groupName === 'undefined' ? 'Columns' : groupName }}
+      <input type="checkbox" id="selectAll" :checked="true" @change="handleSelectChange('selectAll',$event.target.checked)"/> {{ groupName === 'undefined' ? ' Select All' : groupName }}
     </label>
     <li v-for="(col, idx) in columns">
       <input
@@ -10,7 +10,8 @@
         :name="groupName"
         :checked="isColVisible(col)"
         :disabled="typeof col.visible === 'string'"
-        @change="handleChange(col, $event.target.checked)">
+        @change="handleChange(col, $event.target.checked)"
+        className="(col.field)">
       <label :for="uuidGen(col.field || idx)">
         {{ col.label || col.title }}
         <i v-if="col.explain" class="fa fa-info-circle" style="cursor: help" :title="col.explain"></i>
@@ -31,8 +32,41 @@ export default {
     changes: [] // record the changes with a stack
   }),
   methods: {
+    
+    handleSelectChange (col, isChecked) { 
+        if (isChecked == true) {
+          $("input[type='checkbox']").prop("checked", true);
+          this.columns.filter(col => this.$set(col, 'visible', isChecked))
+        } else {
+          this.columns.filter(col => this.$set(col, 'visible', isChecked))
+        }
+      this.changes = [] 
+    
+    },
     handleChange (col, isChecked) {
-      this.changes.push({ col, isChecked })
+      if (isChecked == false) {
+        $("#selectAll").prop('checked', false);
+      } 
+  
+      this.changes.push({ col, isChecked});
+      
+      const unique = [];
+
+      this.changes.forEach(({ col,isChecked}) => {
+    
+        if (unique.find(i => i.field === col.field)) {
+          unique.find(j => {if(j.field === col.field) { return j.isChecked = isChecked;}});
+          return true;
+        }
+      
+        unique.push({field:col.field,isChecked:isChecked});
+        return false;
+      })
+
+      if(unique.every(o => o.isChecked == true) == true) {
+        $("#selectAll").prop('checked', true);
+        this.columns.filter(col => this.$set(col, 'visible', isChecked))
+      }
     },
     uuidGen (key) {
       // $vm._uid is a private property of a Vue instance
@@ -42,7 +76,7 @@ export default {
       this.changes.forEach(({ col, isChecked }) => {
         this.$set(col, 'visible', isChecked)
       })
-      this.changes = [] // don't forget to clear the stack
+      //this.changes = [] // don't forget to clear the stack
     },
     isColVisible
   }
